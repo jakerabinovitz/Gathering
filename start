@@ -1,0 +1,38 @@
+#Quick one liners for more info
+#Hardcoded Path for now, assumes C is root system drive 
+mkdir C:\Forensics
+#Search for any exe's created within a certain date
+gci C:\ -Recurse *.exe | where {$_.LastWriteTime -gt (get-date).addDays(-1)} | Out-File C:\Forensics\executables.txt
+
+#Search in users profiles for anything named cache, usually where we've seen the malware
+gci C:\Users\ -Recurse *cache | Out-File C:\Forensics\cache.txt
+
+#Grab scheduled tasks and save output to a location
+gci C:\Windows\System32\Tasks\ -Recurse | Out-File C:\Forensics\schtasks.txt
+
+#Grab services on computer and save result to location
+Get-Service | Out-File C:\Forensics\ServicesRunning.txt
+
+#Dump out of C:, C:\Windows, and C:\Windows\System32 to location
+gci C:\ | where {$_.LastWriteTime -gt (get-date).AddDays(-1)} | Out-File C:\Forensics\contentsC.txt
+gci C:\Windows | where {$_.LastWriteTime -gt (get-date).AddDays(-1)} | Out-File C:\Forensics\contentsWindows.txt
+gci C:\Windows\System32 | where {$_.LastWriteTime -gt (get-date).AddDays(-1)} | Out-File C:\Forensics\contentsSystem32.txt
+
+#Parses system event log for service installs and dumps results to a location
+Get-EventLog -LogName System | Where-Object {$_.EventID -eq 7045} | Select-Object -ExpandProperty Message | Out-File C:\Forensics\serviceinstalls.txt
+#If Get-EventLog isn't supported use the following
+wevtutil qe System /f:text /q:"Event[System[(EventID=7045)]]" | Out-File C:\Forensics\serviceinstalls2.txt
+
+#Set a date range to look for successful logins
+$Use = (get-date).AddDays(-1)
+#Parse Security Event log for succesfully logins to correlate with service installs
+Get-EventLog -LogName Security -After $Use | Where-Object {$_.EventID -eq 4624} | Select-Object -ExpandProperty Message | Out-File C:\Forensics\successfullogins.txt
+#If Get-Eventlog isn't supported use the following, hardcoded is the format to text, default is xml
+#IMPORTANT, this dumps all successfully logins very big text document at the end
+wevtutil qe Security /f:text /q:"Event[System[(EventID=4624)]]" | Out-File C:\Forensics\serviceinstalls2.txt
+
+#enumerate shares on machine and out to location
+Get-SmbShare | Out-File C:\Forensics\shares.txt
+#enumerate local users and their roles
+$localUsers = Get-WmiObject -Class Win32_UserAccount | Out-File C:\Forensics\accs.txt
+
